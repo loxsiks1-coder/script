@@ -1,6 +1,3 @@
--- STARS MOD | ULTRA AIMBOT + ESP 2026
--- Оновлений: кружок в центрі, сучасне меню, No Recoil, стрільба крізь стіни
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -10,14 +7,13 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
 
--- ========== НАЛАШТУВАННЯ ==========
 local Settings = {
     Enabled = true,
     AimbotEnabled = true,
     SilentAimEnabled = true,
     NoRecoilEnabled = true,
     AimPart = "Head",
-    CheckVisible = false,      -- false = стріляє крізь стіни
+    CheckVisible = false,
     TeamCheck = true,
     AimRadius = 200,
     SilentRadius = 300,
@@ -28,7 +24,6 @@ local Settings = {
     ShowMenu = true,
 }
 
--- ========== КРУЖОК В ЦЕНТРІ ЕКРАНА ==========
 local circleGui = Instance.new("ScreenGui")
 circleGui.Name = "AimCircle"
 circleGui.Parent = CoreGui
@@ -52,35 +47,28 @@ circleStroke.Thickness = 2
 circleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 circleStroke.Parent = circle
 
--- Анімація для кружка
 local function pulseCircle()
     if not Settings.Enabled then return end
-    local tween = TweenService:Create(circle, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+    TweenService:Create(circle, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
         BackgroundTransparency = 0.1,
         Size = UDim2.new(0, 16, 0, 16)
-    })
-    tween:Play()
-    
-    local tween2 = TweenService:Create(circle, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+    }):Play()
+    TweenService:Create(circle, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
         BackgroundTransparency = 0.3,
         Size = UDim2.new(0, 12, 0, 12)
-    })
-    tween2:Play()
+    }):Play()
 end
 
--- ========== ПЕРЕВІРКА ФУНКЦІЙ ==========
 local function checkAllFunctions()
-    local status = {
+    return {
         Aimbot = Settings.AimbotEnabled and Settings.Enabled,
         SilentAim = Settings.SilentAimEnabled and Settings.Enabled,
         NoRecoil = Settings.NoRecoilEnabled,
         Wallhack = Settings.WallhackEnabled,
         VisibleCheck = not Settings.CheckVisible
     }
-    return status
 end
 
--- ========== СУЧАСНЕ МЕНЮ (ТЕМНА ТЕМА, АНІМАЦІЇ) ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "StarsCheatMenu2026"
 screenGui.Parent = CoreGui
@@ -104,7 +92,6 @@ frameStroke.Color = Color3.fromRGB(60, 60, 80)
 frameStroke.Thickness = 1
 frameStroke.Parent = mainFrame
 
--- Градієнт для меню
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 45)),
@@ -112,7 +99,6 @@ gradient.Color = ColorSequence.new({
 })
 gradient.Parent = mainFrame
 
--- Заголовок
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Text = "⚡ STARS MOD 2026 ⚡"
@@ -122,7 +108,6 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 title.Parent = mainFrame
 
--- Кнопка ввімкнення/вимкнення
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0.8, 0, 0, 35)
 toggleBtn.Position = UDim2.new(0.1, 0, 0, 45)
@@ -144,8 +129,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     if Settings.Enabled then pulseCircle() end
 end)
 
--- Функція для створення перемикачів
-local function addToggle(text, flag, yPos, desc)
+local function addToggle(text, flag, yPos)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 30)
     btn.Position = UDim2.new(0.05, 0, 0, yPos)
@@ -171,7 +155,6 @@ local function addToggle(text, flag, yPos, desc)
     return btn
 end
 
--- Слайдер
 local function addSlider(text, flag, minVal, maxVal, yPos)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0.9, 0, 0, 45)
@@ -225,18 +208,16 @@ local function addSlider(text, flag, minVal, maxVal, yPos)
     end)
 end
 
--- Додаємо елементи
 addToggle("Aimbot", "AimbotEnabled", 90)
 addToggle("Silent Aim", "SilentAimEnabled", 125)
 addToggle("No Recoil", "NoRecoilEnabled", 160)
-addToggle("Стрільба крізь стіни", "CheckVisible", 195)  -- false = ігнорувати стіни
+addToggle("Стрільба крізь стіни", "CheckVisible", 195)
 addToggle("Wallhack (ESP)", "WallhackEnabled", 230)
 addToggle("Team Check", "TeamCheck", 265)
 addToggle("Показати меню", "ShowMenu", 300)
 addSlider("No Recoil сила", "NoRecoilValue", 0, 1, 335)
 addSlider("Aimbot радіус", "AimRadius", 50, 500, 380)
 
--- ========== ПЕРЕВІРКА ФУНКЦІЙ (F9) ==========
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.F9 then
@@ -252,7 +233,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- ========== NO RECOIL ==========
 if Settings.NoRecoilEnabled then
     local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
@@ -270,7 +250,6 @@ if Settings.NoRecoilEnabled then
     end)
 end
 
--- ========== ОСНОВНА ЛОГІКА (AIMBOT + SILENT AIM) ==========
 local function GetValidEnemies()
     local enemies = {}
     for _, player in ipairs(Players:GetPlayers()) do
@@ -320,7 +299,6 @@ local function GetClosestToCrosshair(radius, checkVisible)
     return closest
 end
 
--- ESP (Wallhack)
 if Settings.WallhackEnabled then
     local function addESP(player)
         local character = player.Character
@@ -341,7 +319,6 @@ if Settings.WallhackEnabled then
     Players.PlayerAdded:Connect(function(player) if player ~= LocalPlayer then player.CharacterAdded:Connect(function() task.wait(0.5) addESP(player) end) end end)
 end
 
--- Silent Aim
 if Settings.SilentAimEnabled then
     local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
@@ -357,7 +334,6 @@ if Settings.SilentAimEnabled then
     end)
 end
 
--- Aimbot
 if Settings.AimbotEnabled then
     RunService.RenderStepped:Connect(function()
         if Settings.Enabled and Settings.AimbotEnabled then
@@ -371,7 +347,6 @@ if Settings.AimbotEnabled then
     end)
 end
 
--- Анімація кружка при старті
 pulseCircle()
 
-print("✅ STARS MOD 2026 | ULTRA AIMBOT + ESP Loaded")
+print("STARS MOD 2026 | ULTRA AIMBOT + ESP Loaded")
