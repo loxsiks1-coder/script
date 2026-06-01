@@ -1,6 +1,7 @@
--- STARS MOD | MODERN CHEAT MENU 2026
+-- STARS MOD | ULTRA CHEAT MENU 2026
+-- Містить: Aimbot, Fly, Noclip, Speed, ESP
 -- Відкриття: ПРАВИЙ SHIFT
--- Вкладки: AIM, VISUAL, MOVEMENT, SETTINGS
+-- Анімації, сучасний дизайн, довгі слоти
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -13,6 +14,7 @@ local StarterGui = game:GetService("StarterGui")
 
 -- ========== НАЛАШТУВАННЯ ==========
 local Settings = {
+    MenuOpen = false,
     -- AIM
     AimbotEnabled = false,
     SilentAimEnabled = false,
@@ -21,6 +23,7 @@ local Settings = {
     TeamCheck = true,
     AimRadius = 200,
     SilentRadius = 300,
+    Smoothness = 0.3,
     -- VISUAL
     WallhackEnabled = false,
     ESPColor = Color3.fromRGB(255, 50, 50),
@@ -28,34 +31,38 @@ local Settings = {
     -- MOVEMENT
     NoclipEnabled = false,
     FlyEnabled = false,
+    FlySpeed = 50,
     SpeedEnabled = false,
-    SpeedValue = 50,
-    -- SETTINGS
-    MenuOpen = false,
+    SpeedValue = 32,
+    -- FLY GUI (сумісність)
+    FlyGUIVisible = true,
 }
 
--- ========== ЗМІННІ ДЛЯ РУХУ ==========
+-- ========== ЗМІННІ ==========
 local noclipParts = {}
 local flyVelocity = nil
 local originalWalkSpeed = 16
+local flyBodyGyro = nil
+local flyBodyVelocity = nil
 
--- ========== СТВОРЕННЯ МЕНЮ ==========
+-- ========== ГОЛОВНЕ МЕНЮ ==========
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "StarsCheatMenu"
+screenGui.Name = "StarsCheatMenu2026"
 screenGui.Parent = CoreGui
 screenGui.ResetOnSpawn = false
 screenGui.Enabled = false
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainFrame.Size = UDim2.new(0, 380, 0, 520)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -260)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
 mainFrame.BackgroundTransparency = 0.05
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
+mainFrame.BackgroundTransparency = 1
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 12)
+frameCorner.CornerRadius = UDim.new(0, 16)
 frameCorner.Parent = mainFrame
 
 local frameStroke = Instance.new("UIStroke")
@@ -65,94 +72,157 @@ frameStroke.Parent = mainFrame
 
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 45)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 35))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 28, 38)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 18, 28))
 })
 gradient.Parent = mainFrame
 
 -- Заголовок
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 50)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 16)
+titleCorner.Parent = titleBar
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 45)
-title.Text = "⚡ STARS MOD 2026 ⚡"
-title.TextColor3 = Color3.fromRGB(255, 100, 100)
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
+title.Text = "⚡ STARS MOD 2026 ⚡"
+title.TextColor3 = Color3.fromRGB(255, 80, 80)
+title.TextScaled = true
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Parent = mainFrame
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
 
--- Вкладки
-local tabs = {"AIM", "VISUAL", "MOVEMENT", "SETTINGS"}
-local activeTab = "AIM"
-local tabButtons = {}
-local contentFrames = {}
+-- Кнопка закриття
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 32, 0, 32)
+closeBtn.Position = UDim2.new(1, -42, 0, 9)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.AutoButtonColor = false
+closeBtn.Parent = titleBar
 
-local function createTabButton(tabName, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.22, 0, 0, 35)
-    btn.Position = UDim2.new(0.02 + (yPos * 0.25), 0, 0, 50)
-    btn.Text = tabName
-    btn.BackgroundColor3 = tabName == activeTab and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(40, 40, 55)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    btn.Parent = mainFrame
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    Settings.MenuOpen = false
+    screenGui.Enabled = false
+end)
+
+-- СКРОЛЛ КОНТЕЙНЕР
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Size = UDim2.new(1, -10, 1, -60)
+scrollingFrame.Position = UDim2.new(0, 5, 0, 55)
+scrollingFrame.BackgroundTransparency = 1
+scrollingFrame.ScrollBarThickness = 4
+scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 80)
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollingFrame.Parent = mainFrame
+
+-- ========== ФУНКЦІЇ ДЛЯ СТВОРЕННЯ ЕЛЕМЕНТІВ ==========
+
+local function createSection(title)
+    local section = Instance.new("Frame")
+    section.Size = UDim2.new(1, 0, 0, 35)
+    section.BackgroundTransparency = 1
+    section.Parent = scrollingFrame
     
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(1, -20, 0, 2)
+    line.Position = UDim2.new(0, 10, 1, -10)
+    line.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    line.BorderSizePixel = 0
+    line.Parent = section
     
-    btn.MouseButton1Click:Connect(function()
-        activeTab = tabName
-        for _, btn in pairs(tabButtons) do
-            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-        end
-        btn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-        for _, frame in pairs(contentFrames) do
-            frame.Visible = false
-        end
-        contentFrames[tabName].Visible = true
-    end)
-    
-    return btn
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 25)
+    label.Position = UDim2.new(0, 15, 0, 5)
+    label.BackgroundTransparency = 1
+    label.Text = title
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = section
 end
 
--- Створюємо контейнери для кожної вкладки
-local function createContentFrame(tabName)
-    local frame = Instance.new("ScrollingFrame")
-    frame.Size = UDim2.new(0.95, 0, 0, 340)
-    frame.Position = UDim2.new(0.025, 0, 0, 95)
-    frame.BackgroundTransparency = 1
+local function addToggle(name, flag, defaultColor)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 0, 55)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     frame.BorderSizePixel = 0
-    frame.CanvasSize = UDim2.new(0, 0, 0, 400)
-    frame.ScrollBarThickness = 4
-    frame.Parent = mainFrame
-    frame.Visible = tabName == activeTab
-    contentFrames[tabName] = frame
-    return frame
-end
-
--- Перемикач (toggle)
-local function addToggle(parent, text, flag, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.95, 0, 0, 35)
-    btn.Position = UDim2.new(0.025, 0, 0, yPos)
-    btn.Text = text .. ": " .. (Settings[flag] and "ON" or "OFF")
-    btn.BackgroundColor3 = Settings[flag] and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(50, 50, 70)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 13
-    btn.Parent = parent
+    frame.Parent = scrollingFrame
+    
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 12)
+    frameCorner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.65, -20, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 70, 0, 38)
+    toggleBtn.Position = UDim2.new(1, -85, 0.5, -19)
+    toggleBtn.BackgroundColor3 = defaultColor or Color3.fromRGB(0, 180, 0)
+    toggleBtn.Text = Settings[flag] and "ON" or "OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.TextScaled = true
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.AutoButtonColor = false
+    toggleBtn.Parent = frame
     
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = toggleBtn
     
-    btn.MouseButton1Click:Connect(function()
+    -- Анімація при наведенні
+    local function animateButtonIn()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = Settings[flag] and Color3.fromRGB(0, 220, 0) or Color3.fromRGB(220, 0, 0)
+        }):Play()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 75, 0, 40)
+        }):Play()
+    end
+    
+    local function animateButtonOut()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = Settings[flag] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        }):Play()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 70, 0, 38)
+        }):Play()
+    end
+    
+    toggleBtn.MouseEnter:Connect(animateButtonIn)
+    toggleBtn.MouseLeave:Connect(animateButtonOut)
+    
+    toggleBtn.MouseButton1Click:Connect(function()
         Settings[flag] = not Settings[flag]
-        btn.Text = text .. ": " .. (Settings[flag] and "ON" or "OFF")
-        btn.BackgroundColor3 = Settings[flag] and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(50, 50, 70)
+        toggleBtn.Text = Settings[flag] and "ON" or "OFF"
+        toggleBtn.BackgroundColor3 = Settings[flag] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
         
-        -- Спеціальна обробка для Noclip
+        -- Спеціальна обробка
         if flag == "NoclipEnabled" then
             if Settings.NoclipEnabled then
                 local char = LocalPlayer.Character
@@ -174,30 +244,27 @@ local function addToggle(parent, text, flag, yPos)
             end
         end
         
-        -- Спеціальна обробка для Fly
         if flag == "FlyEnabled" then
+            local char = LocalPlayer.Character
+            local humanoid = char and char:FindFirstChild("Humanoid")
             if Settings.FlyEnabled then
-                local char = LocalPlayer.Character
-                local humanoid = char and char:FindFirstChild("Humanoid")
                 if humanoid then
                     originalWalkSpeed = humanoid.WalkSpeed
                     humanoid.PlatformStand = true
-                    flyVelocity = Instance.new("BodyVelocity")
-                    flyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-                    flyVelocity.Parent = char and char:FindFirstChild("HumanoidRootPart")
+                    humanoid.AutoRotate = false
                 end
             else
-                local char = LocalPlayer.Character
-                local humanoid = char and char:FindFirstChild("Humanoid")
                 if humanoid then
                     humanoid.PlatformStand = false
-                    if flyVelocity then flyVelocity:Destroy() end
-                    flyVelocity = nil
+                    humanoid.AutoRotate = true
                 end
+                if flyVelocity then flyVelocity:Destroy() end
+                if flyBodyGyro then flyBodyGyro:Destroy() end
+                flyVelocity = nil
+                flyBodyGyro = nil
             end
         end
         
-        -- Спеціальна обробка для Speed
         if flag == "SpeedEnabled" then
             local char = LocalPlayer.Character
             local humanoid = char and char:FindFirstChild("Humanoid")
@@ -209,46 +276,66 @@ local function addToggle(parent, text, flag, yPos)
                 end
             end
         end
+        
+        if flag == "WallhackEnabled" then
+            updateESP()
+        end
     end)
-    return btn
 end
 
--- Слайдер для радіусу та швидкості
-local function addSlider(parent, text, flag, minVal, maxVal, yPos, isSpeed)
+local function addSlider(name, flag, minVal, maxVal, isSpeed)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0.95, 0, 0, 50)
-    frame.Position = UDim2.new(0.025, 0, 0, yPos)
-    frame.BackgroundTransparency = 1
-    frame.Parent = parent
+    frame.Size = UDim2.new(1, -20, 0, 65)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    frame.BorderSizePixel = 0
+    frame.Parent = scrollingFrame
+    
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 12)
+    frameCorner.Parent = frame
     
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 20)
-    label.Text = text .. ": " .. tostring(Settings[flag])
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Size = UDim2.new(0.65, -20, 0, 25)
+    label.Position = UDim2.new(0, 15, 0, 5)
     label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextScaled = true
     label.Font = Enum.Font.Gotham
-    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = frame
     
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0.3, 0, 0, 25)
+    valueLabel.Position = UDim2.new(0.7, 0, 0, 5)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(Settings[flag])
+    valueLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+    valueLabel.TextScaled = true
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Parent = frame
+    
     local slider = Instance.new("TextButton")
-    slider.Size = UDim2.new(1, 0, 0, 20)
-    slider.Position = UDim2.new(0, 0, 0, 25)
-    slider.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    slider.Size = UDim2.new(0.95, -30, 0, 22)
+    slider.Position = UDim2.new(0, 15, 0, 35)
+    slider.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
     slider.Text = ""
     slider.Parent = frame
     
     local sliderCorner = Instance.new("UICorner")
-    sliderCorner.CornerRadius = UDim.new(0, 10)
+    sliderCorner.CornerRadius = UDim.new(0, 11)
     sliderCorner.Parent = slider
     
     local sliderFill = Instance.new("Frame")
-    sliderFill.Size = UDim2.new((Settings[flag] - minVal) / (maxVal - minVal), 0, 1, 0)
-    sliderFill.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    local startFillSize = (Settings[flag] - minVal) / (maxVal - minVal)
+    sliderFill.Size = UDim2.new(startFillSize, 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
     sliderFill.BorderSizePixel = 0
     sliderFill.Parent = slider
     
     local sliderFillCorner = Instance.new("UICorner")
-    sliderFillCorner.CornerRadius = UDim.new(0, 10)
+    sliderFillCorner.CornerRadius = UDim.new(0, 11)
     sliderFillCorner.Parent = sliderFill
     
     local dragging = false
@@ -261,7 +348,7 @@ local function addSlider(parent, text, flag, minVal, maxVal, yPos, isSpeed)
             local pos = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
             local val = minVal + pos * (maxVal - minVal)
             Settings[flag] = isSpeed and math.floor(val) or math.floor(val)
-            label.Text = text .. ": " .. tostring(Settings[flag])
+            valueLabel.Text = tostring(Settings[flag])
             sliderFill.Size = UDim2.new(pos, 0, 1, 0)
             
             if isSpeed and Settings.SpeedEnabled then
@@ -269,37 +356,134 @@ local function addSlider(parent, text, flag, minVal, maxVal, yPos, isSpeed)
                 local humanoid = char and char:FindFirstChild("Humanoid")
                 if humanoid then humanoid.WalkSpeed = Settings.SpeedValue end
             end
+            if flag == "FlySpeed" and Settings.FlyEnabled then
+                updateFlyControls()
+            end
         end
     end)
 end
 
--- Вкладки
-for i, tab in ipairs(tabs) do
-    table.insert(tabButtons, createTabButton(tab, i-1))
+local function addDropdown(name, flag, options)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 0, 55)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    frame.BorderSizePixel = 0
+    frame.Parent = scrollingFrame
+    
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 12)
+    frameCorner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.65, -20, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local dropdownBtn = Instance.new("TextButton")
+    dropdownBtn.Size = UDim2.new(0, 100, 0, 38)
+    dropdownBtn.Position = UDim2.new(1, -115, 0.5, -19)
+    dropdownBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+    dropdownBtn.Text = Settings[flag]
+    dropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdownBtn.TextScaled = true
+    dropdownBtn.Font = Enum.Font.Gotham
+    dropdownBtn.Parent = frame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = dropdownBtn
+    
+    local expanded = false
+    local dropdownItems = {}
+    
+    dropdownBtn.MouseButton1Click:Connect(function()
+        expanded = not expanded
+        
+        if expanded then
+            frame.Size = UDim2.new(1, -20, 0, 55 + (#options * 45))
+            
+            for i, opt in ipairs(options) do
+                local optBtn = Instance.new("TextButton")
+                optBtn.Size = UDim2.new(0.95, -30, 0, 38)
+                optBtn.Position = UDim2.new(0, 15, 0, 55 + ((i-1) * 45))
+                optBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+                optBtn.Text = opt
+                optBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+                optBtn.TextScaled = true
+                optBtn.Font = Enum.Font.Gotham
+                optBtn.Parent = frame
+                
+                local optCorner = Instance.new("UICorner")
+                optCorner.CornerRadius = UDim.new(0, 8)
+                optCorner.Parent = optBtn
+                
+                optBtn.MouseButton1Click:Connect(function()
+                    Settings[flag] = opt
+                    dropdownBtn.Text = opt
+                    expanded = false
+                    frame.Size = UDim2.new(1, -20, 0, 55)
+                    for _, btn in pairs(frame:GetChildren()) do
+                        if btn:IsA("TextButton") and btn ~= dropdownBtn then
+                            btn:Destroy()
+                        end
+                    end
+                    dropdownItems = {}
+                end)
+                
+                table.insert(dropdownItems, optBtn)
+            end
+        else
+            frame.Size = UDim2.new(1, -20, 0, 55)
+            for _, btn in pairs(dropdownItems) do
+                btn:Destroy()
+            end
+            dropdownItems = {}
+        end
+    end)
 end
 
--- ВКЛАДКА AIM
-local aimFrame = createContentFrame("AIM")
-addToggle(aimFrame, "Aimbot", "AimbotEnabled", 10)
-addToggle(aimFrame, "Silent Aim", "SilentAimEnabled", 50)
-addToggle(aimFrame, "Check Visible (стіни)", "CheckVisible", 90)
-addToggle(aimFrame, "Team Check", "TeamCheck", 130)
-addSlider(aimFrame, "Aimbot Radius", "AimRadius", 50, 500, 170)
-addSlider(aimFrame, "Silent Radius", "SilentRadius", 50, 500, 230)
+-- ========== ПОБУДОВА МЕНЮ ==========
 
--- ВКЛАДКА VISUAL
-local visualFrame = createContentFrame("VISUAL")
-addToggle(visualFrame, "Wallhack (ESP)", "WallhackEnabled", 10)
--- Колір ESP (прості кнопки)
-local colorText = Instance.new("TextLabel")
-colorText.Size = UDim2.new(0.95, 0, 0, 20)
-colorText.Position = UDim2.new(0.025, 0, 0, 55)
-colorText.Text = "ESP Color:"
-colorText.TextColor3 = Color3.fromRGB(200, 200, 200)
-colorText.BackgroundTransparency = 1
-colorText.Font = Enum.Font.Gotham
-colorText.TextSize = 12
-colorText.Parent = visualFrame
+createSection("🎯 AIMBOT")
+addToggle("Aimbot (автонаведення)", "AimbotEnabled", Color3.fromRGB(0, 150, 0))
+addToggle("Silent Aim (патрони в голову)", "SilentAimEnabled", Color3.fromRGB(0, 150, 0))
+addToggle("Check Visible (не крізь стіни)", "CheckVisible", Color3.fromRGB(150, 0, 0))
+addToggle("Team Check", "TeamCheck", Color3.fromRGB(150, 0, 0))
+addDropdown("Частина тіла", "AimPart", {"Head", "HumanoidRootPart", "Torso"})
+addSlider("Aimbot Radius", "AimRadius", 50, 500)
+addSlider("Silent Radius", "SilentRadius", 50, 500)
+addSlider("Smoothness", "Smoothness", 1, 20)
+
+createSection("👁️ VISUAL")
+addToggle("Wallhack (ESP)", "WallhackEnabled", Color3.fromRGB(0, 150, 0))
+
+-- Вибір кольору ESP
+local colorFrame = Instance.new("Frame")
+colorFrame.Size = UDim2.new(1, -20, 0, 45)
+colorFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+colorFrame.BorderSizePixel = 0
+colorFrame.Parent = scrollingFrame
+
+local colorCorner = Instance.new("UICorner")
+colorCorner.CornerRadius = UDim.new(0, 12)
+colorCorner.Parent = colorFrame
+
+local colorLabel = Instance.new("TextLabel")
+colorLabel.Size = UDim2.new(0.4, -20, 1, 0)
+colorLabel.Position = UDim2.new(0, 15, 0, 0)
+colorLabel.BackgroundTransparency = 1
+colorLabel.Text = "ESP Color:"
+colorLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+colorLabel.TextScaled = true
+colorLabel.Font = Enum.Font.Gotham
+colorLabel.TextXAlignment = Enum.TextXAlignment.Left
+colorLabel.Parent = colorFrame
 
 local colors = {
     {Name = "Red", Color = Color3.fromRGB(255, 50, 50)},
@@ -311,73 +495,35 @@ local colors = {
 
 for i, colorInfo in ipairs(colors) do
     local colorBtn = Instance.new("TextButton")
-    colorBtn.Size = UDim2.new(0.18, 0, 0, 25)
-    colorBtn.Position = UDim2.new(0.025 + (i-1) * 0.19, 0, 0, 80)
+    colorBtn.Size = UDim2.new(0.18, 0, 0, 30)
+    colorBtn.Position = UDim2.new(0.45 + (i-1) * 0.11, 0, 0, 8)
     colorBtn.Text = colorInfo.Name
     colorBtn.BackgroundColor3 = colorInfo.Color
     colorBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     colorBtn.Font = Enum.Font.GothamBold
-    colorBtn.TextSize = 11
-    colorBtn.Parent = visualFrame
+    colorBtn.TextSize = 12
+    colorBtn.Parent = colorFrame
     
-    local colorCorner = Instance.new("UICorner")
-    colorCorner.CornerRadius = UDim.new(0, 4)
-    colorCorner.Parent = colorBtn
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = colorBtn
     
     colorBtn.MouseButton1Click:Connect(function()
         Settings.ESPColor = colorInfo.Color
-        -- Оновлюємо ESP
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                local char = player.Character
-                local esp = char and char:FindFirstChild("StarsESP")
-                if esp then esp.FillColor = Settings.ESPColor end
-            end
-        end
+        updateESP()
     end)
 end
 
--- ВКЛАДКА MOVEMENT
-local movementFrame = createContentFrame("MOVEMENT")
-addToggle(movementFrame, "Noclip", "NoclipEnabled", 10)
-addToggle(movementFrame, "Fly", "FlyEnabled", 50)
-addToggle(movementFrame, "Speed", "SpeedEnabled", 90)
-addSlider(movementFrame, "Speed Value", "SpeedValue", 20, 200, 130, true)
+createSection("🚀 MOVEMENT")
+addToggle("Noclip", "NoclipEnabled", Color3.fromRGB(0, 150, 0))
+addToggle("Fly", "FlyEnabled", Color3.fromRGB(0, 150, 0))
+addSlider("Fly Speed", "FlySpeed", 20, 200)
+addToggle("Speed", "SpeedEnabled", Color3.fromRGB(0, 150, 0))
+addSlider("Speed Value", "SpeedValue", 16, 250, true)
 
--- ВКЛАДКА SETTINGS
-local settingsFrame = createContentFrame("SETTINGS")
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0.8, 0, 0, 40)
-closeBtn.Position = UDim2.new(0.1, 0, 0, 20)
-closeBtn.Text = "CLOSE MENU (RIGHT SHIFT)"
-closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.Parent = settingsFrame
+-- ========== ФУНКЦІЇ ==========
 
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeBtn
-
-closeBtn.MouseButton1Click:Connect(function()
-    Settings.MenuOpen = false
-    screenGui.Enabled = false
-end)
-
--- ========== ВІДКРИТТЯ МЕНЮ ПО ПРАВОМУ SHIFT ==========
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        Settings.MenuOpen = not Settings.MenuOpen
-        screenGui.Enabled = Settings.MenuOpen
-    end
-end)
-
--- ========== ОСНОВНІ ФУНКЦІЇ ==========
-
--- Функція для ESP (Wallhack)
-local function updateESP()
+function updateESP()
     if not Settings.WallhackEnabled then
         for _, player in ipairs(Players:GetPlayers()) do
             local char = player.Character
@@ -409,8 +555,31 @@ local function updateESP()
     end
 end
 
--- Функція для Noclip
-local function updateNoclip()
+function updateFlyControls()
+    local char = LocalPlayer.Character
+    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if Settings.FlyEnabled and rootPart then
+        if not flyVelocity then
+            flyVelocity = Instance.new("BodyVelocity")
+            flyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+            flyVelocity.Parent = rootPart
+        end
+        if not flyBodyGyro then
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+            flyBodyGyro.P = 50000
+            flyBodyGyro.Parent = rootPart
+        end
+    elseif flyVelocity then
+        flyVelocity:Destroy()
+        flyVelocity = nil
+        if flyBodyGyro then flyBodyGyro:Destroy() end
+        flyBodyGyro = nil
+    end
+end
+
+function updateNoclip()
     local char = LocalPlayer.Character
     if not char then return end
     
@@ -431,39 +600,7 @@ local function updateNoclip()
     end
 end
 
--- Функція для Fly
-local function updateFly()
-    local char = LocalPlayer.Character
-    local humanoid = char and char:FindFirstChild("Humanoid")
-    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if Settings.FlyEnabled and humanoid and rootPart then
-        humanoid.PlatformStand = true
-        if not flyVelocity or flyVelocity.Parent ~= rootPart then
-            if flyVelocity then flyVelocity:Destroy() end
-            flyVelocity = Instance.new("BodyVelocity")
-            flyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-            flyVelocity.Parent = rootPart
-        end
-        
-        local move = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0, 1, 0) end
-        
-        flyVelocity.Velocity = move.Unit * 50
-    elseif humanoid then
-        humanoid.PlatformStand = false
-        if flyVelocity then flyVelocity:Destroy() end
-        flyVelocity = nil
-    end
-end
-
--- Функція для Speed
-local function updateSpeed()
+function updateSpeed()
     local char = LocalPlayer.Character
     local humanoid = char and char:FindFirstChild("Humanoid")
     if humanoid then
@@ -475,7 +612,7 @@ local function updateSpeed()
     end
 end
 
--- Функція для отримання ворогів
+-- Функції для Aimbot
 local function GetValidEnemies()
     local enemies = {}
     for _, player in ipairs(Players:GetPlayers()) do
@@ -486,6 +623,7 @@ local function GetValidEnemies()
                 local humanoid = character and character:FindFirstChild("Humanoid")
                 if character and humanoid and humanoid.Health > 0 then
                     local aimPart = character:FindFirstChild(Settings.AimPart)
+                    if not aimPart then aimPart = character:FindFirstChild("Head") end
                     if aimPart then
                         local isVisible = false
                         if Settings.CheckVisible then
@@ -547,23 +685,99 @@ RunService.RenderStepped:Connect(function()
         local target = GetClosestToCrosshair(Settings.AimRadius, Settings.CheckVisible)
         if target and target.AimPart then
             local targetCF = CFrame.new(Camera.CFrame.Position, target.AimPart.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCF, 0.3)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCF, Settings.Smoothness)
         end
     end
     
     updateESP()
     updateNoclip()
-    updateFly()
     updateSpeed()
+    
+    -- Fly логіка
+    local char = LocalPlayer.Character
+    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char and char:FindFirstChild("Humanoid")
+    
+    if Settings.FlyEnabled and rootPart and humanoid then
+        humanoid.PlatformStand = true
+        humanoid.AutoRotate = false
+        
+        if not flyVelocity then
+            flyVelocity = Instance.new("BodyVelocity")
+            flyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+            flyVelocity.Parent = rootPart
+        end
+        if not flyBodyGyro then
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+            flyBodyGyro.P = 50000
+            flyBodyGyro.Parent = rootPart
+        end
+        
+        local move = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0, 1, 0) end
+        
+        if move.Magnitude > 0 then
+            flyVelocity.Velocity = move.Unit * Settings.FlySpeed
+        else
+            flyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        flyBodyGyro.CFrame = Camera.CFrame
+    elseif humanoid then
+        humanoid.PlatformStand = false
+        humanoid.AutoRotate = true
+        if flyVelocity then flyVelocity:Destroy() end
+        if flyBodyGyro then flyBodyGyro:Destroy() end
+        flyVelocity = nil
+        flyBodyGyro = nil
+    end
 end)
 
--- Оновлення Noclip при зміні персонажа
+-- Оновлення при появі персонажа
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(0.5)
     noclipParts = {}
     updateNoclip()
-    updateFly()
     updateSpeed()
+    flyVelocity = nil
+    flyBodyGyro = nil
 end)
 
-print("STARS MOD | Modern Cheat Menu Loaded. Press RIGHT SHIFT to open")
+-- ========== АНІМАЦІЯ ВІДКРИТТЯ МЕНЮ ==========
+local menuOpenTween = nil
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        Settings.MenuOpen = not Settings.MenuOpen
+        if Settings.MenuOpen then
+            screenGui.Enabled = true
+            mainFrame.BackgroundTransparency = 1
+            if menuOpenTween then menuOpenTween:Cancel() end
+            menuOpenTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                BackgroundTransparency = 0.05
+            })
+            menuOpenTween:Play()
+            
+            TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 380, 0, 520)
+            }):Play()
+        else
+            if menuOpenTween then menuOpenTween:Cancel() end
+            menuOpenTween = TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                BackgroundTransparency = 1
+            })
+            menuOpenTween:Play()
+            task.wait(0.2)
+            screenGui.Enabled = false
+        end
+    end
+end)
+
+print("STARS MOD |
